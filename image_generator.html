@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 圖片生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ebe9 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #6b7280;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+        }
+
+        /* 表單區域 */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #9ca3af;
+        }
+
+        .count-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .count-btn {
+            padding: 15px 25px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .count-btn:hover {
+            border-color: #9ca3af;
+        }
+
+        .count-btn.active {
+            border-color: #6b7280;
+            background: #6b7280;
+            color: white;
+        }
+
+        .submit-btn {
+            padding: 15px 40px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .submit-btn:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .submit-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 圖庫區域 */
+        .gallery {
+            margin-top: 40px;
+        }
+
+        .gallery-title {
+            font-size: 1.3rem;
+            color: #6b7280;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .grid-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: #fff;
+            aspect-ratio: 1;
+            cursor: pointer;
+        }
+
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .grid-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .grid-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+            animation: zoomIn 0.3s ease;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input[type="text"] {
+                min-width: 100%;
+            }
+
+            .count-selector {
+                justify-content: center;
+            }
+
+            .submit-btn {
+                align-self: stretch;
+            }
+        }
+
+        .click-hint {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .grid-item:hover .click-hint {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI 圖片生成器</h1>
+            
+            <form action="/generate-images" method="POST">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        name="description" 
+                        placeholder="描述你想生成的圖片，例如：一隻在草地上奔跑的金毛獵犬..." 
+                        required
+                    >
+                    
+                    <div class="count-selector">
+                        <button type="button" class="count-btn" data-count="4">4張</button>
+                        <button type="button" class="count-btn active" data-count="6">6張</button>
+                        <button type="button" class="count-btn" data-count="9">9張</button>
+                        <button type="button" class="count-btn" data-count="12">12張</button>
+                    </div>
+                    
+                    <input type="hidden" name="count" value="6">
+                </div>
+                
+                <button type="submit" class="submit-btn">開始生成</button>
+            </form>
+        </header>
+
+        <!-- 圖庫展示區 -->
+        <div class="gallery" id="gallery">
+            <h2 class="gallery-title">圖片庫</h2>
+            <div id="loadingIndicator" class="loading" style="display: none;">正在生成圖片</div>
+            <div class="grid" id="imageGrid">
+                <!-- 示例圖片 -->
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1615529182904-14819c35db37?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+                <div class="grid-item" onclick="openLightbox(this)">
+                    <img src="https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800" alt="生成圖片範例">
+                    <div class="click-hint">點擊放大</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <div class="lightbox-close" onclick="closeLightbox()">×</div>
+            <img id="lightbox-img" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // 張數選擇
+        const countBtns = document.querySelectorAll('.count-btn');
+        const countInput = document.querySelector('input[name="count"]');
+
+        countBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                countBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                countInput.value = this.dataset.count;
+            });
+        });
+
+        // 表單提交處理
+        const form = document.querySelector('form');
+        const gallery = document.getElementById('gallery');
+        const galleryTitle = document.querySelector('.gallery-title');
+        const imageGrid = document.getElementById('imageGrid');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // 顯示載入狀態
+            galleryTitle.textContent = '生成結果';
+            loadingIndicator.style.display = 'block';
+            imageGrid.innerHTML = '';
+
+            // 收集表單數據
+            const formData = new FormData(this);
+
+            try {
+                // 發送到後端
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // 隱藏載入指示器
+                loadingIndicator.style.display = 'none';
+
+                // 顯示圖片
+                if (data.images && Array.isArray(data.images)) {
+                    data.images.forEach(imageUrl => {
+                        const gridItem = document.createElement('div');
+                        gridItem.className = 'grid-item';
+                        gridItem.onclick = function() { openLightbox(this); };
+                        
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = '生成的圖片';
+                        
+                        gridItem.appendChild(img);
+                        imageGrid.appendChild(gridItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingIndicator.style.display = 'none';
+                imageGrid.innerHTML = '<p style="text-align:center;color:#c33;">生成失敗，請稍後再試</p>';
+            }
+        });
+
+        // Lightbox 功能
+        function openLightbox(element) {
+            const img = element.querySelector('img');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            
+            lightboxImg.src = img.src;
+            lightboxImg.alt = img.alt;
+            
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+    </script>
+</body>
+</html>
