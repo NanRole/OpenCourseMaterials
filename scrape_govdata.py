@@ -1,11 +1,7 @@
 import requests
 from bs4 import BeautifulSoup # pip install beautifulsoup4
 import pandas as pd
-import matplotlib.pyplot as plt
 import io
-
-plt.rcParams['font.family'] = 'Microsoft JhengHei'
-plt.rcParams['axes.unicode_minus'] = False
 
 url = 'https://data.gov.tw/dataset/34811' # 替換成你要找的資料集網址
 html = requests.get(url)
@@ -19,3 +15,4 @@ for a in links:
 html = requests.get(csv_link, verify=False)
 df = pd.read_csv(io.StringIO(html.text))
 print(df)
+
