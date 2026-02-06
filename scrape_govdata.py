@@ -18,24 +18,4 @@ for a in links:
         break
 html = requests.get(csv_link, verify=False)
 df = pd.read_csv(io.StringIO(html.text))
-
-# 針對讀取的csv資料(df變數)做後續自定義處理
-latest = df.loc[0]['monitordate']
-x = []
-y = []
-for i in range(len(df)):
-    row = df.loc[i]
-    if row['monitordate'] == latest:
-        x.append(f"{row['itemengname']}({row['itemunit']})")
-        if row['concentration'] != 'x':
-            y.append(float(row['concentration']))
-        else:
-            y.append(0)
-
-plt.barh(x, y, label='空氣')
-plt.legend()
-plt.title(f'{latest} 花蓮空氣品質')
-plt.xlabel('氣體微粒')
-# plt.xticks(rotation=270)
-plt.ylabel('含量')
-plt.show()
+print(df)
